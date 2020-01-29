@@ -17,29 +17,33 @@ if read_from_file
     time_ch = 1;
     eeg_ch = 2:9;
     groupid_ch = 12;
-    acc_ch = 13;
+    tap_ch = 2; % 13 - in case if the accelerometer channel was used as the tapping channel;
+    tap_ch_type = 'eeg'; % 'acc' - in case if the accelerometer channel was used as the tapping channel;
     arduino_ch = 17;
     
     % get data from the variable y
     time = y(time_ch, :);
     groupid = y(groupid_ch, :);
-    acc = y(acc_ch, :);
+    tap = y(tap_ch, :);
     arduino = y(arduino_ch, :);
+    
+    % change scale for visualization purposes
+    tap = tap / max(tap);
     
     % visualize initial data
     figure();
     plot(time, groupid)
     hold on
-    plot(time, acc)
+    plot(time, tap)
     plot(time, arduino)
-    legend('groupid', 'accelerometer', 'arduino')
+    legend('groupid', 'tapping channel', 'arduino')
     
     % save initial variables
     groupid_init = groupid;
-    acc_init = acc;
+    tap_init = tap;
     arduino_init = arduino;
     % convert to time samples (detect time points when the groupid and arduino values were changing and when the tapping occurred)
-    [groupid, acc, arduino] = convert_to_ts(groupid, acc, arduino);
+    [groupid, tap, arduino] = convert_to_ts(groupid, tap, arduino, tap_ch_type);
     
     % tapping moments "acc" are detected automatically by finding
     % maximal peaks in the accelerometer data
@@ -47,10 +51,11 @@ if read_from_file
     % the plot of the accelerometer data; in this case, the moment when the
     % accelerometer data deviates from the baseline is called the "tapping
     % moment"
+    
     manually_assigned_tapping_moments_ms = readtable('manually_assigned_tapping_moments_ms.txt'); 
     manually_assigned_tapping_moments_ms = manually_assigned_tapping_moments_ms{:,:};
     manually_assigned_tapping_moments_ms = manually_assigned_tapping_moments_ms(1,:);
-    acc = round(manually_assigned_tapping_moments_ms*eeg_sample_rate/1000);
+    tap = round(manually_assigned_tapping_moments_ms*eeg_sample_rate/1000);
     
     % get info about key frames from the text file
     frame_data = readtable('frame_data.txt'); frame_data = frame_data{:,:};
@@ -62,33 +67,33 @@ if read_from_file
     rt_video_ms = from_frames_to_ms(rt_video_frames, video_fps);
     
     % calculate reaction times from recorded data
-    rt_recorded_ts = acc - arduino;
+    rt_recorded_ts = tap - arduino;
     rt_recorded_ms = from_ts_to_ms(rt_recorded_ts, eeg_sample_rate);
 
     % calculate delay of the paradigm presenter
-    delay_ms = 1000*(groupid - acc)/eeg_sample_rate + rt_video_ms;
+    delay_ms = 1000*(groupid - tap)/eeg_sample_rate + rt_video_ms;
     
     if visualize_flag
         
         figure();
         % handles
         h = zeros(6,1);
-        h(1) = plot(time, groupid_init);
+        h(1) = plot(time, 2 * groupid_init);
         hold on
-        h(2) = plot(time, acc_init);
-        h(3) = plot(time, arduino_init);
+        h(2) = plot(time, 1.5 * tap_init);
+        h(3) = plot(time, 1.2 * arduino_init);
         xlim([0, time(end)])
-        ylim([-1, 1])
+        ylim([-1, 2])
         for idx = 1:numel(groupid)
-            h(4) = plot([groupid(idx), groupid(idx)]/eeg_sample_rate, [-1 1], 'LineStyle', '--', 'Color', 'b');
-            h(5) = plot([acc(idx), acc(idx)]/eeg_sample_rate, [-1 1], 'LineStyle', '--', 'Color', 'g');
-            h(6) = plot([arduino(idx), arduino(idx)]/eeg_sample_rate, [-1 1], 'LineStyle', '--', 'Color', 'r');
+            h(4) = plot([groupid(idx), groupid(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'b');
+            h(5) = plot([tap(idx), tap(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'g');
+            h(6) = plot([arduino(idx), arduino(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'r');
             % plot image appearance according to the video (acc -
             % reaction_time)
             %h(4) = plot([arduino(idx), arduino(idx)]/eeg_sample_rate, [-1 1], 'LineStyle', '--', 'Color', 'r');
         end
         
-        legend(h, {'groupid'; 'acc'; 'arduino'; 'groupid trigger'; 'acc trigger'; 'arduino trigger'});              
+        legend(h, {'groupid'; 'tap-ch'; 'arduino'; 'groupid trigger'; 'tap-ch trigger'; 'arduino trigger'});              
         
     end
     
@@ -108,21 +113,3 @@ else
     plot(tapping_channel)
     
 end
-
-% tapping_moments_ts = find(tapping_channel);
-% group_id(1:first_group_id-1) = 0;
-% group_id_ts = find(diff([group_id,0]));
-% group_id_ts = group_id_ts(1:2:end);
-% sample_rate = 250; % Hz 
-% original_video_fps = 240;
-% image_appearance = [2771, 3672, 4618, 5517]; % frame number
-% reaction = [2811, 3724, 4668, 5568]; % frame number
-% reaction_times = reaction - image_appearance; 
-% reaction_times_s = reaction_times/original_video_fps;
-% reaction_times_time_points = round(reaction_times_s * sample_rate);
-% tapping_moments_ts = tapping_moments_ts(1:numel(image_appearance));
-% group_id_ts = group_id_ts(1:numel(image_appearance));
-% actual_image_appearance_moments_ts = tapping_moments_ts - reaction_times_time_points;
-% delay = group_id_ts - actual_image_appearance_moments_ts;
-% delay_ms = 1000*delay/sample_rate;
-% display(delay_ms);
