@@ -1,4 +1,4 @@
-function [G, TP, ARD] = convert_to_ts(gid, acc, ard, tap_ch_type)
+function [G, TP, ARD, DI] = convert_to_ts(gid, acc, ard, di, tap_ch_type)
 
 %% groupid processing
 first_gid = find(gid == 1,1);
@@ -44,3 +44,10 @@ ard(1:first_gid-w_size) = 0;
 
 ard = find(diff([ard,0]));
 ARD = ard(1:2:end);
+
+%% DI data
+
+di(1:first_gid-w_size) = 0;
+
+di = find(diff([di,0]));
+DI = di(1:2:end);

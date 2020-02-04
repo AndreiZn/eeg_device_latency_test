@@ -1,6 +1,6 @@
 read_from_file = 1; % 1 - read data from file; 0 - read file from the figure;
 first_frame_of_the_exp = 1299; %2583; %947;
-last_frame_of_the_exp = 15452;%12182; %9411;
+last_frame_of_the_exp = 15451;%12182; %9411;
 duration_of_the_exp = 60; % sec
 % video_fps of the Iphone is expected to be 240fps, however, it is
 % calclulated to be around 232fps.
@@ -19,17 +19,20 @@ if read_from_file
     groupid_ch = 12;
     tap_ch = 2; % 13 - in case if the accelerometer channel was used as the tapping channel;
     tap_ch_type = 'eeg'; % 'acc' - in case if the accelerometer channel was used as the tapping channel;
-    arduino_ch = 17;
+    arduino_ch = 19;
+    DI_ch = 17;
     
     % get data from the variable y
     time = y(time_ch, :);
     groupid = y(groupid_ch, :);
     tap = y(tap_ch, :);
     arduino = y(arduino_ch, :);
+    DI = y(DI_ch, :);
     
     % change scale for visualization purposes
-    arduino = arduino / max(arduino);
     tap = tap / max(tap);
+    arduino = arduino / max(arduino);
+    DI = DI / max(DI);
     
     % visualize initial data
     figure();
@@ -37,15 +40,16 @@ if read_from_file
     hold on
     plot(time, tap)
     plot(time, arduino)
-    legend('groupid', 'tapping channel', 'arduino')
-    plot(time, y(19,:))
-    
+    plot(time, DI)
+    legend('groupid', 'tapping channel', 'arduino', 'DI')
+        
     % save initial variables
     groupid_init = groupid;
     tap_init = tap;
     arduino_init = arduino;
+    DI_init = DI;
     % convert to time samples (detect time points when the groupid and arduino values were changing and when the tapping occurred)
-    [groupid, tap, arduino] = convert_to_ts(groupid, tap, arduino, tap_ch_type);
+    [groupid, tap, arduino, DI] = convert_to_ts(groupid, tap, arduino, DI, tap_ch_type);
     
     % tapping moments "acc" are detected automatically by finding
     % maximal peaks in the accelerometer data
@@ -69,9 +73,12 @@ if read_from_file
     rt_video_ms = from_frames_to_ms(rt_video_frames, video_fps);
     
     % calculate reaction times from recorded data
-    rt_recorded_ts = tap - arduino;
-    rt_recorded_ms = from_ts_to_ms(rt_recorded_ts, eeg_sample_rate);
-
+    rt_recorded_ARD_ts = tap - arduino;
+    rt_recorded_ARD_ms = from_ts_to_ms(rt_recorded_ARD_ts, eeg_sample_rate);
+    
+    rt_recorded_DI_ts = tap - DI;
+    rt_recorded_DI_ms = from_ts_to_ms(rt_recorded_DI_ts, eeg_sample_rate);
+    
     % calculate delay of the paradigm presenter
     delay_ms = 1000*(groupid - tap)/eeg_sample_rate + rt_video_ms;
     
@@ -80,22 +87,24 @@ if read_from_file
         figure();
         % handles
         h = zeros(6,1);
-        h(1) = plot(time, 2 * groupid_init);
+        h(1) = plot(time, 1.2 * groupid_init);
         hold on
-        h(2) = plot(time, 1.5 * tap_init);
-        h(3) = plot(time, 1.2 * arduino_init);
+        h(2) = plot(time, tap_init);
+        h(3) = plot(time, 1.1 * arduino_init);
+        h(4) = plot(time, DI_init);
         xlim([0, time(end)])
         ylim([-1, 2])
         for idx = 1:numel(groupid)
-            h(4) = plot([groupid(idx), groupid(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'b');
-            h(5) = plot([tap(idx), tap(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'g');
-            h(6) = plot([arduino(idx), arduino(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'r');
+            h(5) = plot([groupid(idx), groupid(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'b');
+            h(6) = plot([tap(idx), tap(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'g');
+            h(7) = plot([arduino(idx), arduino(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'r');
+            h(8) = plot([DI(idx), DI(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'k');
             % plot image appearance according to the video (acc -
             % reaction_time)
             %h(4) = plot([arduino(idx), arduino(idx)]/eeg_sample_rate, [-1 1], 'LineStyle', '--', 'Color', 'r');
         end
         
-        legend(h, {'groupid'; 'tap-ch'; 'arduino'; 'groupid trigger'; 'tap-ch trigger'; 'arduino trigger'});              
+        legend(h, {'groupid'; 'tap-ch'; 'arduino'; 'DI'; 'groupid trigger'; 'tap-ch trigger'; 'arduino trigger'; 'DI trigger'});              
         
     end
     
