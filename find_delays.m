@@ -1,7 +1,7 @@
 read_from_file = 1; % 1 - read data from file; 0 - read file from the figure;
-first_frame_of_the_exp = 2583; %947;
-last_frame_of_the_exp = 12182; %9411;
-duration_of_the_exp = 40; % sec
+first_frame_of_the_exp = 1190; %2583; %947;
+last_frame_of_the_exp = 12789;%12182; %9411;
+duration_of_the_exp = 50; % sec
 % video_fps of the Iphone is expected to be 240fps, however, it is
 % calclulated to be around 212fps.
 video_fps = (last_frame_of_the_exp - first_frame_of_the_exp + 1) / duration_of_the_exp;
