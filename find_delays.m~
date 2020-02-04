@@ -17,7 +17,7 @@ if read_from_file
     time_ch = 1;
     eeg_ch = 2:9;
     groupid_ch = 12;
-    tap_ch = 2; % 13 - in case if the accelerometer channel was used as the tapping channel;
+    tap_ch = 13; % 2; % 13 - in case if the accelerometer channel was used as the tapping channel;
     tap_ch_type = 'eeg'; % 'acc' - in case if the accelerometer channel was used as the tapping channel;
     arduino_ch = 17;
     
@@ -38,7 +38,6 @@ if read_from_file
     plot(time, tap)
     plot(time, arduino)
     legend('groupid', 'tapping channel', 'arduino')
-    plot(time, y(19,:))
     
     % save initial variables
     groupid_init = groupid;

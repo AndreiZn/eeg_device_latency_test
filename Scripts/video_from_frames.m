@@ -16,7 +16,21 @@ for vid_idx = 1:numel(vid_files)
     videoObject = VideoReader(vid_name);
     n_frames = videoObject.NumFrames;
     f_2 = waitbar(0,'Please wait...');
-    for fr_idx = 1:n_frames
+    
+    %fr_step = 100;
+    starting_frames = 1201:1500; % frames displaying the start of the experiment
+    fr_interval = 960; % number of frames between appearances of two images (4 sec * 240 frames/sec)
+    first_image_frames = 5901:6150;
+    num_fr_per_event = numel(first_image_frames);
+    num_events = 10;
+    action_frames = zeros(num_events * num_fr_per_event, 1);
+    for idx=1:num_events
+        action_frames(1 + (idx-1)*num_fr_per_event: idx*num_fr_per_event) = first_image_frames + (idx-1)*fr_interval;
+    end
+    last_frames = 15400:15550;
+    selected_frames = [starting_frames, action_frames', last_frames];
+    
+    for fr_idx = selected_frames %1:fr_step:n_frames
         
         waitbar(fr_idx/n_frames,f_2,'Please wait...');
         
