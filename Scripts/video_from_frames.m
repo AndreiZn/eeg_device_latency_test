@@ -19,20 +19,20 @@ for vid_idx = 1:numel(vid_files)
     f_2 = waitbar(0,'Please wait...');
     
     %fr_step = 100;
-    starting_frames = 1201:1500; % frames displaying the start of the experiment
+    starting_frames = 1201:2000; % frames displaying the start of the experiment
     fr_interval = 4 * original_video_fps;
-    first_image_frames = 5901:6100;
+    first_image_frames = 5980:6200;
     num_fr_per_event = numel(first_image_frames);
     num_events = 10;
     action_frames = zeros(num_events * num_fr_per_event, 1);
     for idx=1:num_events
         action_frames(1 + (idx-1)*num_fr_per_event: idx*num_fr_per_event) = first_image_frames + (idx-1)*fr_interval;
     end
-    last_frames = 15400:15550;
+    last_frames = 15400:18000;
     selected_frames = [starting_frames, action_frames', last_frames];
     %selected_frames = action_frames';
     
-    for fr_idx = [11600:11700, 12500:12700, 13500:13700, 14400:14600] %selected_frames %1:fr_step:n_frames
+    for fr_idx = selected_frames %1:fr_step:n_frames
         
         waitbar(fr_idx/n_frames,f_2,'Please wait...');
         
