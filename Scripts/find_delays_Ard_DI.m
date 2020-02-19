@@ -9,7 +9,6 @@ groupid_ch = 12;
 acc_ch = 13:15; % accelerometer channels
 DI_ch = 17;
 arduino_ch = 19;
-
 num_events = 10;
 
 %% read and analyze data files
@@ -20,6 +19,7 @@ dirflag = ~[files.isdir] & ~strcmp({files.name},'..') & ~strcmp({files.name},'.'
 files = files(dirflag);
 
 delay_ms = zeros(numel(files), num_events);
+delay_G_Ard_ms = zeros(numel(files), num_events);
 
 for filei=1:numel(files)
     % read file
@@ -61,6 +61,8 @@ for filei=1:numel(files)
     
     % calculate delay of the DI channel
     delay_ms(filei, :) = 1000*(DI - arduino)/eeg_sample_rate;
+    % calculate delay of the groupid channel
+    delay_G_Ard_ms(filei, :) = 1000*(groupid - arduino)/eeg_sample_rate;
     
     %visualize data with triggers
     if visualize_data_flag
@@ -85,25 +87,37 @@ end
 
 %% visualize delay_ms
 
-trials_per_setting = 3; % each set-up was tested three times
+% setup_labels = {'small operator window, lamp'; 'small operator window, no lamp'; ... 
+%                 'small operator window, scope, lamp'; 'fullscreen operator window, no scope, no lamp'; ...
+%                 'fullscreen operator window, busy laptop'; 'fullscreen operator window, external screen'};
+
+setup_labels = {'Typical Experiment Conditions, cap1, run1'; 'TEC, cap1, run2'; ... 
+                'TEC, cap1, run3'; ...
+                'TEC, but no g.scope, cap1, run4'; 'TEC, cap1, run4'; ...
+                'TEC, but no g.scope, cap2, run1'; 'TEC, cap2, run1'};
+            
+num_setups = size(setup_labels,1);
+trials_per_setting = [3,3,1,3,3,2,2]; % each set-up was tested up to three times
+%trials_per_setting = [3,3,3,3,3,3]; % each set-up was tested up to three times
+max_trials_per_setting = max(trials_per_setting);
 
 num_files = size(delay_ms, 1);
 num_events = size(delay_ms, 2);
-num_setups = round(num_files / trials_per_setting); 
+%num_setups = round(num_files / trials_per_setting); 
 
-resh_delay_ms = zeros(num_setups, trials_per_setting * num_events);
+resh_delay_ms = NaN(num_setups, max_trials_per_setting * num_events);
 
 for exp_idx = 1:num_setups
-    
-    file_idx = 1+(exp_idx-1)*trials_per_setting:exp_idx*trials_per_setting;
+    %file_idx = 1+(exp_idx-1)*trials_per_setting:exp_idx*trials_per_setting;
+    file_idx = sum(trials_per_setting(1:exp_idx-1)) + 1 : sum(trials_per_setting(1:exp_idx));
     cur_delays = delay_ms(file_idx, :);
-    total_num_trials = trials_per_setting * num_events;
-    resh_delay_ms(exp_idx, :) = reshape(cur_delays, total_num_trials, 1);
+    total_num_trials = trials_per_setting(exp_idx) * num_events;
+    resh_delay_ms(exp_idx, 1:total_num_trials) = reshape(cur_delays, total_num_trials, 1);
 end
 
 x = 1:num_setups;
-y = mean(resh_delay_ms,2);
-yneg = std(resh_delay_ms, [], 2)/2;
+y = nanmean(resh_delay_ms,2);
+yneg = nanstd(resh_delay_ms, [], 2)/2;
 ypos = yneg;
 xneg = zeros(1,num_setups);
 xpos = zeros(1,num_setups);
@@ -111,13 +125,49 @@ figure();
 errorbar(x,y,yneg,ypos,xneg,xpos,'o')
 xlim([0.5,num_setups+0.5])
 xticks(1:num_setups)
-xlabel('Method #')
-ylabel('Digital input delay, ms')
-ylim([0, 1.1*max(resh_delay_ms(:))])
+xlabel('Set-up #')
+ylabel('Digital input delay relative to arduino, ms')
+%ylim([0, 1.1*max(resh_delay_ms(:))])
+ylim([0, 900])
 grid on
-setup_labels = {'small operator window, lamp'; 'small operator window, no lamp'; ... 
-                'small operator window, scope, lamp'; 'fullscreen operator window, no scope, no lamp'; ...
-                'fullscreen operator window, busy laptop'; 'fullscreen operator window, external screen'};
+
+
+for i=1:num_setups
+    text(x(i) + 0.1, y(i), setup_labels{i})
+end
+set(gca, 'fontsize', 14)
+
+%% visualize delay_G_Ard_ms
+
+resh_delay_G_Ard_ms = NaN(num_setups, max_trials_per_setting * num_events);
+
+for exp_idx = 1:num_setups
+    %file_idx = 1+(exp_idx-1)*trials_per_setting:exp_idx*trials_per_setting;
+    file_idx = sum(trials_per_setting(1:exp_idx-1)) + 1 : sum(trials_per_setting(1:exp_idx));
+    cur_delays = delay_G_Ard_ms(file_idx, :);
+    total_num_trials = trials_per_setting(exp_idx) * num_events;
+    resh_delay_G_Ard_ms(exp_idx, 1:total_num_trials) = reshape(cur_delays, total_num_trials, 1);
+end
+
+x = 1:num_setups;
+y = nanmean(resh_delay_G_Ard_ms,2);
+yneg = nanstd(resh_delay_G_Ard_ms, [], 2)/2;
+ypos = yneg;
+xneg = zeros(1,num_setups);
+xpos = zeros(1,num_setups);
+figure();
+errorbar(x,y,yneg,ypos,xneg,xpos,'o')
+xlim([0.5,num_setups+0.5])
+xticks(1:num_setups)
+xlabel('Set-up #')
+ylabel('GroupID delay relative to arduino, ms')
+ylim([0, 1.1*max(resh_delay_G_Ard_ms(:))])
+%ylim([0, 900])
+grid on
+% setup_labels = {'small operator window, lamp'; 'small operator window, no lamp'; ... 
+%                 'small operator window, scope, lamp'; 'fullscreen operator window, no scope, no lamp'; ...
+%                 'fullscreen operator window, busy laptop'; 'fullscreen operator window, external screen'};
+
 for i=1:num_setups
     text(x(i) + 0.1, y(i), setup_labels{i})
 end

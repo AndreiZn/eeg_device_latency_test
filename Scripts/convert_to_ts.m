@@ -52,7 +52,7 @@ end
 
 ard_first = find_first_trig(ard, image_appearance_time_s, sample_rate);
 ard_step = w_size;
-ard_range = 10; % time points
+ard_range = 15; % time points
 
 ARD = zeros(1,numel(G));
 ARD(1) = ard_first;
@@ -60,7 +60,12 @@ ARD(1) = ard_first;
 for i=2:numel(G)
     ard_cur = ard_first + (i-1)*ard_step;
     ard_cur_range = ard_cur - ard_range:ard_cur + ard_range;
-    ARD(i) = ard_cur_range(find(diff([ard(ard_cur_range),0]),1));
+    ard_trig = ard_cur_range(find(diff([ard(ard_cur_range),0]),1));
+    if ~isempty(ard_trig)
+        ARD(i) = ard_cur_range(find(diff([ard(ard_cur_range),0]),1));
+    else
+        ARD(i) = ard_cur;
+    end
 end
 
 %% DI data
@@ -78,7 +83,7 @@ end
 
 di_first = find_first_trig(di, image_appearance_time_s, sample_rate);
 di_step = w_size;
-di_range = 10; % time points
+di_range = 15; % time points
 
 DI = zeros(1,numel(G));
 DI(1) = di_first;
