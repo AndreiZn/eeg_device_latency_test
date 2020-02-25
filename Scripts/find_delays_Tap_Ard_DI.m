@@ -104,8 +104,8 @@ if read_from_file
             %h(4) = plot([arduino(idx), arduino(idx)]/eeg_sample_rate, [-1 1], 'LineStyle', '--', 'Color', 'r');
         end
         
-        legend(h, {'groupid'; 'tap-ch'; 'arduino'; 'DI'; 'groupid trigger'; 'tap-ch trigger'; 'arduino trigger'; 'DI trigger'});              
-        
+        lg = legend(h, {'groupid'; 'tap-ch'; 'arduino'; 'DI'; 'groupid trigger'; 'tap-ch trigger'; 'arduino trigger'; 'DI trigger'});              
+        set(lg, 'FontSize', 12);
     end
     
 else

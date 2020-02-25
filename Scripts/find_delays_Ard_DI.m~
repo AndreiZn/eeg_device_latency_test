@@ -102,10 +102,23 @@ end
 
 %% visualize delay_ms
 
+% setup_labels = {'small operator window, lamp'; 'small operator window, no lamp'; ... 
+%                 'small operator window, scope, lamp'; 'fullscreen operator window, no scope, no lamp'; ...
+%                 'fullscreen operator window, busy laptop'; 'fullscreen operator window, external screen'};
+
+% setup_labels = {'small operator window, lamp'; 'small operator window, no lamp'; ... 
+%                 'fullscreen operator window, no scope, no lamp'; ...
+%                 'fullscreen operator window, busy laptop'; 'fullscreen operator window, external screen'};
+            
+            
 num_setups = size(setup_labels,1);
+%trials_per_setting = [3,3,3,3,3]; % each set-up was tested up to three times
+trials_per_setting = [3,3,1,3,3,2,2]; % each set-up was tested up to three times
 max_trials_per_setting = max(trials_per_setting);
+
 num_files = size(delay_ms, 1);
 num_events = size(delay_ms, 2);
+%num_setups = round(num_files / trials_per_setting); 
 
 resh_delay_ms = NaN(num_setups, max_trials_per_setting * num_events);
 

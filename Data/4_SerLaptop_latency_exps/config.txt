@@ -1,0 +1,6 @@
+3 3 3 3 3
+small operator window, lamp
+small operator window, no lamp
+fullscreen operator window, no scope, no lamp
+fullscreen operator window, busy laptop
+fullscreen operator window, external screen
