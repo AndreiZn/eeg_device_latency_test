@@ -35,6 +35,7 @@ end
 trials_per_setting = str2num(setup_labels{1,1});
 setup_labels = setup_labels(2:size(setup_labels,1)-1,1);
 fclose(fid);
+assert(numel(trials_per_setting) == size(setup_labels,1), 'the number of set-ups is not equal to the number of set-up labels')
 
 for filei=1:numel(files)
     % read file

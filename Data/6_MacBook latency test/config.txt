@@ -1,0 +1,6 @@
+3 3 3 3 1
+default set-up, run1
+default set-up, run2
+default set-up, run3
+busy laptop, run4
+default set-up, but g.scope OFF, run5

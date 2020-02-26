@@ -50,7 +50,11 @@ end
 
 %ard(1:first_gid-w_size) = 0;
 
-ard_first = find_first_trig(ard, image_appearance_time_s, sample_rate);
+try
+    ard_first = find_first_trig(ard, image_appearance_time_s, sample_rate);
+catch
+    keyboard
+end
 ard_step = w_size;
 ard_range = 15; % time points
 
@@ -73,17 +77,17 @@ end
 % check that the DI data is not changing before the first event (use grouid
 % to identify the first event approximately)
 % w_left = 1*sample_rate; % 1sec in time-points
-% 
+%
 % if ~isempty(find(diff(di(1:first_gid-w_left)),1))
 %     di(1:first_gid-w_left) = 0;
 % end
-% 
+%
 % di = find(diff([di,0]));
 % DI = di(1:2:end);
 
 di_first = find_first_trig(di, image_appearance_time_s, sample_rate);
 di_step = w_size;
-di_range = 15; % time points
+di_range = 40; % time points
 
 DI = zeros(1,numel(G));
 DI(1) = di_first;
@@ -91,5 +95,9 @@ DI(1) = di_first;
 for i=2:numel(G)
     di_cur = di_first + (i-1)*di_step;
     di_cur_range = di_cur - di_range:di_cur + di_range;
-    DI(i) = di_cur_range(find(diff([di(di_cur_range),0]),1));
+    try
+        DI(i) = di_cur_range(find(diff([di(di_cur_range),0]),1));
+    catch
+        keyboard
+    end
 end

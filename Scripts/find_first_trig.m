@@ -1,9 +1,9 @@
 function [first_trig] = find_first_trig(s, event_length_s, sample_rate)
 
 event_length_tp = event_length_s * sample_rate;
-eps = 20; % time_samples - possible error of event length
+eps = 40; % time_samples - possible error of event length
 
-change_tp = find(diff([0,s]));
+change_tp = find(diff([1,s]));
 all_trig_moments = find(s(change_tp) == 1);
 
 fl = 1;
