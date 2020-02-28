@@ -1,27 +1,14 @@
 %% defaults
-eeg_sample_rate = 250; % Hz
 visualize_data_flag = 0;
-
-% define channel numbers
-time_ch = 1;
-eeg_ch = 2:9;
-groupid_ch = 12;
-acc_ch = 13:15; % accelerometer channels
-DI_ch = 17;
-arduino_ch = 19;
-num_events = 10;
 
 %% read and analyze data files
 root_folder = uigetdir('./','Select a folder with data files...');
-
 files = dir(root_folder);
 config = files(strcmp({files.name}, 'config.txt'));
 dirflag = ~[files.isdir] & ~strcmp({files.name},'..') & ~strcmp({files.name},'.') & ...
-          ~strcmp({files.name},'.DS_Store') & ~strcmp({files.name},'config.txt');
+    ~strcmp({files.name},'.DS_Store') & ~strcmp({files.name},'config.txt');
 files = files(dirflag);
-%files = files([1:6, 10:numel(files)]);
-delay_ms = zeros(numel(files), num_events);
-delay_G_Ard_ms = zeros(numel(files), num_events);
+
 
 % read the config file
 setup_labels = cell(1,1);
@@ -37,17 +24,77 @@ setup_labels = setup_labels(2:size(setup_labels,1)-1,1);
 fclose(fid);
 assert(numel(trials_per_setting) == size(setup_labels,1), 'the number of set-ups is not equal to the number of set-up labels')
 
+
+% determine the maximal number of events among all data files
+max_num_events = 0;
 for filei=1:numel(files)
+    %disp(filei)
     % read file
     file_struct = files(filei);
     filepath = fullfile(file_struct.folder, file_struct.name);
     y = load(filepath); y = y.y;
+    
+    if size(y,1) == 20
+        groupid_ch = 12;
+    elseif size(y,1) == 39
+        groupid_ch = 36;
+    else
+        errordlg('Unrecognized case (only 20 and 39 channels are supported)')
+    end
+    
+    num_events = round(numel(find(diff(y(groupid_ch,1000:end))))/2);
+    if num_events > max_num_events
+        max_num_events = num_events;
+    end
+end
+
+% define the structure that will store delay data
+delay_ms = NaN(numel(files), max_num_events);
+delay_G_Ard_ms = NaN(numel(files), max_num_events);
+
+for filei=1:numel(files)
+    %disp(filei)
+    % read file
+    file_struct = files(filei);
+    filepath = fullfile(file_struct.folder, file_struct.name);
+    y = load(filepath); y = y.y;
+    
+    % define channel numbers
+    if size(y,1) == 20
+        time_ch = 1;
+        eeg_ch = 2:9;
+        groupid_ch = 12;
+        acc_ch = 13:15; % accelerometer channels
+        DI_ch = 17;
+        arduino_ch = 19;
+        CFG.event_length_s = 4; % events occur every 4 seconds
+        CFG.image_appearance_time_s = 3; % sec
+    elseif size(y,1) == 39
+        time_ch = 1;
+        eeg_ch = 2:33;
+        groupid_ch = 36;
+        DI_ch = 37;
+        arduino_ch = 38;
+        CFG.event_length_s = 0.9; % events occur every 4 seconds
+        CFG.image_appearance_time_s = 0.4; % sec
+    else
+        errordlg('Unrecognized case (only 20 and 39 channels are supported)')
+    end
+    
+    %calculte the number of the events from the groupid data
+    groupid = y(groupid_ch, :);
+    groupid_events = groupid(groupid >= 0);
+    num_events = round(numel(find(diff(groupid_events)))/2);
     
     % get data from the variable y
     time = y(time_ch, :);
     groupid = y(groupid_ch, :);
     DI = y(DI_ch, :);
     arduino = y(arduino_ch, :);
+    
+    % calculate the sample rate of the EEG device
+    eeg_sample_rate = 1/(time(2) - time(1));
+    CFG.eeg_sample_rate = eeg_sample_rate;
     
     % change scale for visualization purposes
     arduino = arduino / max(arduino);
@@ -67,22 +114,28 @@ for filei=1:numel(files)
     groupid_init = groupid;
     arduino_init = arduino;
     DI_init = DI;
-
+    
     % convert to time samples (detect time points when the groupid and arduino values were changing and when the tapping occurred)
-    [groupid, ~, arduino, DI] = convert_to_ts(groupid, [], arduino, DI, []);
+    [groupid, ~, arduino, DI] = convert_to_ts(groupid, [], arduino, DI, [], CFG);
+    
+    
     
     assert(numel(groupid) == num_events, 'number of groupid triggers is not equal to the number of events')
     assert(numel(arduino) == num_events, 'number of arduino triggers is not equal to the number of events')
     assert(numel(DI) == num_events, 'number of DI triggers is not equal to the number of events')
     
     % calculate delay of the DI channel
-    delay_ms(filei, :) = 1000*(DI - arduino)/eeg_sample_rate;
+    
+    delay_ms(filei, 1:num_events) = 1000*(DI - arduino)/eeg_sample_rate;
     % calculate delay of the groupid channel
-    delay_G_Ard_ms(filei, :) = 1000*(groupid - arduino)/eeg_sample_rate;
+    delay_G_Ard_ms(filei, 1:num_events) = 1000*(groupid - arduino)/eeg_sample_rate;
+    
+    disp(numel(find(delay_ms(filei,:) < 0)))
+    %keyboard
     
     %visualize data with triggers
     if visualize_data_flag
-        figure();       
+        figure();
         % handles
         h = zeros(6,1);
         h(1) = plot(time, 1.2 * groupid_init);
@@ -96,7 +149,7 @@ for filei=1:numel(files)
             h(5) = plot([arduino(idx), arduino(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'r');
             h(6) = plot([DI(idx), DI(idx)]/eeg_sample_rate, [-1 2], 'LineStyle', '--', 'Color', 'k');
         end
-        legend(h, {'groupid'; 'arduino'; 'DI'; 'groupid trigger'; 'arduino trigger'; 'DI trigger'});     
+        legend(h, {'groupid'; 'arduino'; 'DI'; 'groupid trigger'; 'arduino trigger'; 'DI trigger'});
     end
     %keyboard
 end
@@ -136,7 +189,7 @@ grid on
 
 
 for i=1:num_setups
-    text(x(i) + 0.1, y(i), setup_labels{i})
+    text(x(i) + 0.1, y(i), setup_labels{i}, 'Interpreter', 'latex')
 end
 set(gca, 'fontsize', 14)
 
@@ -167,11 +220,8 @@ ylabel('GroupID delay relative to arduino, ms')
 ylim([0, 1.1*max(resh_delay_G_Ard_ms(:))])
 %ylim([0, 900])
 grid on
-% setup_labels = {'small operator window, lamp'; 'small operator window, no lamp'; ... 
-%                 'small operator window, scope, lamp'; 'fullscreen operator window, no scope, no lamp'; ...
-%                 'fullscreen operator window, busy laptop'; 'fullscreen operator window, external screen'};
 
 for i=1:num_setups
-    text(x(i) + 0.1, y(i), setup_labels{i})
+    text(x(i) + 0.1, y(i), setup_labels{i}, 'Interpreter', 'latex')
 end
 set(gca, 'fontsize', 14)

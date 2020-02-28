@@ -1,19 +1,25 @@
-function [G, TP, ARD, DI] = convert_to_ts(gid, acc, ard, di, tap_ch_type)
+function [G, TP, ARD, DI] = convert_to_ts(gid, acc, ard, di, tap_ch_type, CFG)
 
 %% groupid processing
-first_gid = find(gid == 1,1);
+first_gid = find(gid >= 1,1);
 gid(1:first_gid-1) = 0;
+try
+last_gid = find(gid >= 1); last_gid = last_gid(end);
+catch
+    keyboard
+end
+gid(last_gid+1:end) = 0;
 
-gid = find(diff([gid,0]));
-G = gid(1:2:end);
+gid_idx = find(diff([gid,0]));
+G = gid_idx(1:2:end);
 
-sample_rate = 250; % Hz
-event_length_s = 4; % events occur every 4 seconds
-image_appearance_time_s = 3; % sec
+sample_rate = CFG.eeg_sample_rate;
+event_length_s = CFG.event_length_s;
+image_appearance_time_s = CFG.image_appearance_time_s;
 freq_of_tapping = 1/event_length_s; % Hz
 % we will check windows of w_size width and find there a maximum peak -
 % at each channel; the peak occurs at the moments when there was tapping;
-w_size = sample_rate/freq_of_tapping; % time-points
+w_size = round(sample_rate/freq_of_tapping); % time-points
 
 %% accelerometer data processing
 if ~isempty(tap_ch_type)
@@ -56,17 +62,23 @@ catch
     keyboard
 end
 ard_step = w_size;
-ard_range = 15; % time points
+ard_range = 40; % time points
 
 ARD = zeros(1,numel(G));
 ARD(1) = ard_first;
 
 for i=2:numel(G)
-    ard_cur = ard_first + (i-1)*ard_step;
-    ard_cur_range = ard_cur - ard_range:ard_cur + ard_range;
-    ard_trig = ard_cur_range(find(diff([ard(ard_cur_range),0]),1));
+    new_point_estimate = NaN(i-1,1);
+    for j=1:i-1
+        prev_point = ARD(j);
+        num_steps = i - j;
+        new_point_estimate(j,1) = ARD(j) + num_steps*ard_step;
+    end
+    ard_cur = round(nanmean(new_point_estimate));
+    ard_cur_range = ard_cur - ard_range:min(ard_cur + ard_range, numel(ard));
+    ard_trig = ard_cur_range(find(diff(ard(ard_cur_range)),1));
     if ~isempty(ard_trig)
-        ARD(i) = ard_cur_range(find(diff([ard(ard_cur_range),0]),1));
+        ARD(i) = ard_cur_range(find(diff(ard(ard_cur_range)),1));
     else
         ARD(i) = ard_cur;
     end
