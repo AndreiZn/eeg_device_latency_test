@@ -130,7 +130,6 @@ for filei=1:numel(files)
     delay_G_Ard_ms(filei, 1:num_events) = 1000*(groupid - arduino)/eeg_sample_rate;
     
     disp(numel(find(delay_ms(filei,:) < 0)))
-    %keyboard
     
     %visualize data with triggers
     if visualize_data_flag
