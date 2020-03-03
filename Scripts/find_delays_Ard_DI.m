@@ -28,7 +28,6 @@ assert(numel(trials_per_setting) == size(setup_labels,1), 'the number of set-ups
 % determine the maximal number of events among all data files
 max_num_events = 0;
 for filei=1:numel(files)
-    %disp(filei)
     % read file
     file_struct = files(filei);
     filepath = fullfile(file_struct.folder, file_struct.name);
