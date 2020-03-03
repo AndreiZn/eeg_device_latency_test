@@ -1,4 +1,6 @@
 3 3 3 3 3
+3 3 3 3 3
+4 4 4 4 4
 small operator window, lamp
 small operator window, no lamp
 fullscreen operator window, no scope, no lamp

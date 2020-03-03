@@ -16,10 +16,9 @@ G = gid_idx(1:2:end);
 sample_rate = CFG.eeg_sample_rate;
 event_length_s = CFG.event_length_s;
 image_appearance_time_s = CFG.image_appearance_time_s;
-freq_of_tapping = 1/event_length_s; % Hz
 % we will check windows of w_size width and find there a maximum peak -
 % at each channel; the peak occurs at the moments when there was tapping;
-w_size = round(sample_rate/freq_of_tapping); % time-points
+w_size = sample_rate*event_length_s; % time-points
 
 %% accelerometer data processing
 if ~isempty(tap_ch_type)
@@ -54,15 +53,13 @@ else
 end
 %% arduino data
 
-%ard(1:first_gid-w_size) = 0;
-
 try
     ard_first = find_first_trig(ard, image_appearance_time_s, sample_rate);
 catch
     keyboard
 end
 ard_step = w_size;
-ard_range = 40; % time points
+ard_range = min(40, round(image_appearance_time_s*sample_rate/2));
 
 ARD = zeros(1,numel(G));
 ARD(1) = ard_first;
@@ -72,13 +69,13 @@ for i=2:numel(G)
     for j=1:i-1
         prev_point = ARD(j);
         num_steps = i - j;
-        new_point_estimate(j,1) = ARD(j) + num_steps*ard_step;
+        new_point_estimate(j,1) = prev_point + num_steps*ard_step;
     end
     ard_cur = round(nanmean(new_point_estimate));
     ard_cur_range = ard_cur - ard_range:min(ard_cur + ard_range, numel(ard));
-    ard_trig = ard_cur_range(find(diff(ard(ard_cur_range)),1));
+    ard_trig = ard_cur_range(find(diff(ard(ard_cur_range)),1)) + 1;
     if ~isempty(ard_trig)
-        ARD(i) = ard_cur_range(find(diff(ard(ard_cur_range)),1));
+        ARD(i) = ard_trig;
     else
         ARD(i) = ard_cur;
     end
@@ -86,29 +83,28 @@ end
 
 %% DI data
 
-% check that the DI data is not changing before the first event (use grouid
-% to identify the first event approximately)
-% w_left = 1*sample_rate; % 1sec in time-points
-%
-% if ~isempty(find(diff(di(1:first_gid-w_left)),1))
-%     di(1:first_gid-w_left) = 0;
-% end
-%
-% di = find(diff([di,0]));
-% DI = di(1:2:end);
-
 di_first = find_first_trig(di, image_appearance_time_s, sample_rate);
 di_step = w_size;
-di_range = 40; % time points
+di_range = min(40, round(image_appearance_time_s*sample_rate/2)); % time points
 
 DI = zeros(1,numel(G));
 DI(1) = di_first;
 
 for i=2:numel(G)
-    di_cur = di_first + (i-1)*di_step;
-    di_cur_range = di_cur - di_range:di_cur + di_range;
+    
+    estim_pts = min(i-1, CFG.estim_points);
+    new_point_estimate = NaN(estim_pts,1);
+    for j=1:estim_pts
+        prev_point = DI(i-j);
+        num_steps = j;
+        new_point_estimate(j,1) = prev_point + num_steps*di_step;
+    end
+    di_cur = round(nanmean(new_point_estimate));
+    di_cur_range = di_cur - di_range:min(di_cur + di_range, numel(di));
+    di_trig = di_cur_range(find(diff(di(di_cur_range)),1)) + 1;
+    
     try
-        DI(i) = di_cur_range(find(diff([di(di_cur_range),0]),1));
+        DI(i) = di_trig;
     catch
         keyboard
     end

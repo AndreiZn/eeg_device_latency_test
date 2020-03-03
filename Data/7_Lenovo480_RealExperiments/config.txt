@@ -1,4 +1,6 @@
 5 3 3 1 1
+0.4 0.4 0.4 0.4 0.4
+0.9 0.9 0.9 0.9 0.9
 exp 2_2_2, 250Hz, 32chs + all other data, run1
 exp 2_2_2, 250Hz, only 32chs, run2
 exp 2_2_2, 500Hz, only32chs, run3
