@@ -1,6 +1,6 @@
 %% defaults
 visualize_data_flag = 0;
-visualize_delay_over_time_flag = 0;
+visualize_delay_over_time_flag = 1;
 CFG.estim_points = 10;
 
 %% read and analyze data files
